@@ -30,19 +30,19 @@ void read_gps(void) {
     char read_serial_byte = Serial1.read();                                                              //Load a new serial byte in the read_serial_byte variable.
     if (read_serial_byte == '$') {                                                                       //If the new byte equals a $ character.
       for (message_counter = 0; message_counter <= 99; message_counter ++) {                             //Clear the old data from the incomming buffer array.
-        incomming_message[message_counter] = '-';                                                        //Write a - at every position.
+        incoming_message[message_counter] = '-';                                                        //Write a - at every position.
       }
-      message_counter = 0;                                                                               //Reset the message_counter variable because we want to start writing at the begin of the array.
+      message_counter = 0;                                                                               //Reset the message_counter variable because we want to arming_state writing at the begin of the array.
     }
     else if (message_counter <= 99)message_counter ++;                                                   //If the received byte does not equal a $ character, increase the message_counter variable.
-    incomming_message[message_counter] = read_serial_byte;                                               //Write the new received byte to the new position in the incomming_message array.
+    incoming_message[message_counter] = read_serial_byte;                                               //Write the new received byte to the new position in the incoming_message array.
     if (read_serial_byte == '*') new_line_found = 1;                                                     //Every NMEA line end with a *. If this character is detected the new_line_found variable is set to 1.
   }
 
   //If the software has detected a new NMEA line it will check if it's a valid line that can be used.
   if (new_line_found == 1) {                                                                             //If a new NMEA line is found.
     new_line_found = 0;                                                                                  //Reset the new_line_found variable for the next line.
-    if (incomming_message[4] == 'L' && incomming_message[5] == 'L' && incomming_message[7] == ',') {     //When there is no GPS fix or latitude/longitude information available.
+    if (incoming_message[4] == 'L' && incoming_message[5] == 'L' && incoming_message[7] == ',') {     //When there is no GPS fix or latitude/longitude information available.
       digitalWrite(STM32_board_LED, !digitalRead(STM32_board_LED));                                      //Change the LED on the STM32 to indicate GPS reception.
       //Set some variables to 0 if no valid information is found by the GPS module. This is needed for GPS lost when flying.
       l_lat_gps = 0;
@@ -52,40 +52,40 @@ void read_gps(void) {
       number_used_sats = 0;
     }
     //If the line starts with GA and if there is a GPS fix we can scan the line for the latitude, longitude and number of satellites.
-    if (incomming_message[4] == 'G' && incomming_message[5] == 'A' && (incomming_message[44] == '1' || incomming_message[44] == '2')) {
-      lat_gps_actual = ((int)incomming_message[19] - 48) *  (long)10000000;                              //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[20] - 48) * (long)1000000;                               //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[22] - 48) * (long)100000;                                //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[23] - 48) * (long)10000;                                 //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[24] - 48) * (long)1000;                                  //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[25] - 48) * (long)100;                                   //Filter the minutes for the GGA line multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[26] - 48) * (long)10;                                    //Filter the minutes for the GGA line multiplied by 10.
+    if (incoming_message[4] == 'G' && incoming_message[5] == 'A' && (incoming_message[44] == '1' || incoming_message[44] == '2')) {
+      lat_gps_actual = ((int)incoming_message[19] - 48) *  (long)10000000;                              //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[20] - 48) * (long)1000000;                               //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[22] - 48) * (long)100000;                                //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[23] - 48) * (long)10000;                                 //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[24] - 48) * (long)1000;                                  //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[25] - 48) * (long)100;                                   //Filter the minutes for the GGA line multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[26] - 48) * (long)10;                                    //Filter the minutes for the GGA line multiplied by 10.
       lat_gps_actual /= (long)6;                                                                         //To convert the minutes to degrees we need to divide the minutes by 6.
-      lat_gps_actual += ((int)incomming_message[17] - 48) *  (long)100000000;                            //Add the degrees multiplied by 10.
-      lat_gps_actual += ((int)incomming_message[18] - 48) *  (long)10000000;                             //Add the degrees multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[17] - 48) *  (long)100000000;                            //Add the degrees multiplied by 10.
+      lat_gps_actual += ((int)incoming_message[18] - 48) *  (long)10000000;                             //Add the degrees multiplied by 10.
       lat_gps_actual /= 10;                                                                              //Divide everything by 10.
 
-      lon_gps_actual = ((int)incomming_message[33] - 48) *  (long)10000000;                              //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[34] - 48) * (long)1000000;                               //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[36] - 48) * (long)100000;                                //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[37] - 48) * (long)10000;                                 //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[38] - 48) * (long)1000;                                  //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[39] - 48) * (long)100;                                   //Filter the minutes for the GGA line multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[40] - 48) * (long)10;                                    //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual = ((int)incoming_message[33] - 48) *  (long)10000000;                              //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[34] - 48) * (long)1000000;                               //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[36] - 48) * (long)100000;                                //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[37] - 48) * (long)10000;                                 //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[38] - 48) * (long)1000;                                  //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[39] - 48) * (long)100;                                   //Filter the minutes for the GGA line multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[40] - 48) * (long)10;                                    //Filter the minutes for the GGA line multiplied by 10.
       lon_gps_actual /= (long)6;                                                                         //To convert the minutes to degrees we need to divide the minutes by 6.
-      lon_gps_actual += ((int)incomming_message[30] - 48) * (long)1000000000;                            //Add the degrees multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[31] - 48) * (long)100000000;                             //Add the degrees multiplied by 10.
-      lon_gps_actual += ((int)incomming_message[32] - 48) * (long)10000000;                              //Add the degrees multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[30] - 48) * (long)1000000000;                            //Add the degrees multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[31] - 48) * (long)100000000;                             //Add the degrees multiplied by 10.
+      lon_gps_actual += ((int)incoming_message[32] - 48) * (long)10000000;                              //Add the degrees multiplied by 10.
       lon_gps_actual /= 10;                                                                              //Divide everything by 10.
 
-      if (incomming_message[28] == 'N')latitude_north = 1;                                               //When flying north of the equator the latitude_north variable will be set to 1.
+      if (incoming_message[28] == 'N')latitude_north = 1;                                               //When flying north of the equator the latitude_north variable will be set to 1.
       else latitude_north = 0;                                                                           //When flying south of the equator the latitude_north variable will be set to 0.
 
-      if (incomming_message[42] == 'E')longiude_east = 1;                                                //When flying east of the prime meridian the longiude_east variable will be set to 1.
-      else longiude_east = 0;                                                                            //When flying west of the prime meridian the longiude_east variable will be set to 0.
+      if (incoming_message[42] == 'E')longitude_east = 1;                                                //When flying east of the prime meridian the longitude_east variable will be set to 1.
+      else longitude_east = 0;                                                                            //When flying west of the prime meridian the longitude_east variable will be set to 0.
 
-      number_used_sats = ((int)incomming_message[46] - 48) * (long)10;                                   //Filter the number of satillites from the GGA line.
-      number_used_sats += (int)incomming_message[47] - 48;                                               //Filter the number of satillites from the GGA line.
+      number_used_sats = ((int)incoming_message[46] - 48) * (long)10;                                   //Filter the number of satillites from the GGA line.
+      number_used_sats += (int)incoming_message[47] - 48;                                               //Filter the number of satillites from the GGA line.
 
       if (lat_gps_previous == 0 && lon_gps_previous == 0) {                                              //If this is the first time the GPS code is used.
         lat_gps_previous = lat_gps_actual;                                                               //Set the lat_gps_previous variable to the lat_gps_actual variable.
@@ -110,7 +110,7 @@ void read_gps(void) {
     }
 
     //If the line starts with SA and if there is a GPS fix we can scan the line for the fix type (none, 2D or 3D).
-    if (incomming_message[4] == 'S' && incomming_message[5] == 'A')fix_type = (int)incomming_message[9] - 48;
+    if (incoming_message[4] == 'S' && incoming_message[5] == 'A')fix_type = (int)incoming_message[9] - 48;
 
   }
 
@@ -149,13 +149,13 @@ void read_gps(void) {
       gps_lon_error = l_lon_waypoint - l_lon_gps;                                                         //Calculate the latitude error between waypoint and actual position.
       gps_lat_error = l_lat_gps - l_lat_waypoint;                                                         //Calculate the longitude error between waypoint and actual position.
 
-      gps_lat_total_avarage -=  gps_lat_rotating_mem[ gps_rotating_mem_location];                         //Subtract the current memory position to make room for the new value.
+      gps_lat_average_total -=  gps_lat_rotating_mem[ gps_rotating_mem_location];                         //Subtract the current memory position to make room for the new value.
       gps_lat_rotating_mem[ gps_rotating_mem_location] = gps_lat_error - gps_lat_error_previous;          //Calculate the new change between the actual pressure and the previous measurement.
-      gps_lat_total_avarage +=  gps_lat_rotating_mem[ gps_rotating_mem_location];                         //Add the new value to the long term avarage value.
+      gps_lat_average_total +=  gps_lat_rotating_mem[ gps_rotating_mem_location];                         //Add the new value to the long term avarage value.
 
-      gps_lon_total_avarage -=  gps_lon_rotating_mem[ gps_rotating_mem_location];                         //Subtract the current memory position to make room for the new value.
+      gps_lon_average_total -=  gps_lon_rotating_mem[ gps_rotating_mem_location];                         //Subtract the current memory position to make room for the new value.
       gps_lon_rotating_mem[ gps_rotating_mem_location] = gps_lon_error - gps_lon_error_previous;          //Calculate the new change between the actual pressure and the previous measurement.
-      gps_lon_total_avarage +=  gps_lon_rotating_mem[ gps_rotating_mem_location];                         //Add the new value to the long term avarage value.
+      gps_lon_average_total +=  gps_lon_rotating_mem[ gps_rotating_mem_location];                         //Add the new value to the long term avarage value.
       gps_rotating_mem_location++;                                                                        //Increase the rotating memory location.
       if ( gps_rotating_mem_location == 35) gps_rotating_mem_location = 0;                                //Start at 0 when the memory location 35 is reached.
 
@@ -164,16 +164,16 @@ void read_gps(void) {
 
       //Calculate the GPS pitch and roll correction as if the nose of the multicopter is facing north.
       //The Proportional part = (float)gps_lat_error * gps_p_gain.
-      //The Derivative part = (float)gps_lat_total_avarage * gps_d_gain.
-      gps_pitch_adjust_north = (float)gps_lat_error * gps_p_gain + (float)gps_lat_total_avarage * gps_d_gain;
-      gps_roll_adjust_north = (float)gps_lon_error * gps_p_gain + (float)gps_lon_total_avarage * gps_d_gain;
+      //The Derivative part = (float)gps_lat_average_total * gps_d_gain.
+      gps_pitch_adjust_north = (float)gps_lat_error * gps_p_gain + (float)gps_lat_average_total * gps_d_gain;
+      gps_roll_adjust_north = (float)gps_lon_error * gps_p_gain + (float)gps_lon_average_total * gps_d_gain;
 
       if (!latitude_north)gps_pitch_adjust_north *= -1;                                                   //Invert the pitch adjustmet because the quadcopter is flying south of the equator.
-      if (!longiude_east)gps_roll_adjust_north *= -1;                                                     //Invert the roll adjustmet because the quadcopter is flying west of the prime meridian.
+      if (!longitude_east)gps_roll_adjust_north *= -1;                                                     //Invert the roll adjustmet because the quadcopter is flying west of the prime meridian.
 
       //Because the correction is calculated as if the nose was facing north, we need to convert it for the current heading.
-      gps_roll_adjust = ((float)gps_roll_adjust_north * cos(angle_yaw * 0.017453)) + ((float)gps_pitch_adjust_north * cos((angle_yaw - 90) * 0.017453));
-      gps_pitch_adjust = ((float)gps_pitch_adjust_north * cos(angle_yaw * 0.017453)) + ((float)gps_roll_adjust_north * cos((angle_yaw + 90) * 0.017453));
+      gps_roll_adjust = ((float)gps_roll_adjust_north * cos(yaw_angle * 0.017453)) + ((float)gps_pitch_adjust_north * cos((yaw_angle - 90) * 0.017453));
+      gps_pitch_adjust = ((float)gps_pitch_adjust_north * cos(yaw_angle * 0.017453)) + ((float)gps_roll_adjust_north * cos((yaw_angle + 90) * 0.017453));
 
       //Limit the maximum correction to 300. This way we still have full controll with the pitch and roll stick on the transmitter.
       if (gps_roll_adjust > 300) gps_roll_adjust = 300;
@@ -184,7 +184,7 @@ void read_gps(void) {
   }
 
   if (gps_watchdog_timer + 1000 < millis()) {                                                             //If the watchdog timer is exceeded the GPS signal is missing.
-    if (flight_mode >= 3 && start > 0) {                                                                  //If flight mode is set to 3 (GPS hold).
+    if (flight_mode >= 3 && arming_state > 0) {                                                                  //If flight mode is set to 3 (GPS hold).
       flight_mode = 2;                                                                                    //Set the flight mode to 2.
       error = 4;                                                                                          //Output an error.
     }
@@ -205,8 +205,8 @@ void read_gps(void) {
       //Reset the variables that are used for the D-controller.
       gps_lat_error_previous = 0;
       gps_lon_error_previous = 0;
-      gps_lat_total_avarage = 0;
-      gps_lon_total_avarage = 0;
+      gps_lat_average_total = 0;
+      gps_lon_average_total = 0;
       gps_rotating_mem_location = 0;
     }
   }

@@ -1,7 +1,7 @@
 
 void read_compass() {
   HWire.beginTransmission(compass_address);                     //Start communication with the compass.
-  HWire.write(0x03);                                            //We want to start reading at the hexadecimal location 0x03.
+  HWire.write(0x03);                                            //We want to arming_state reading at the hexadecimal location 0x03.
   HWire.endTransmission();                                      //End the transmission with the gyro.
 
   HWire.requestFrom(compass_address, 6);                        //Request 6 bytes from the compass.
@@ -23,8 +23,8 @@ void read_compass() {
 
   //The compass values change when the roll and pitch angle of the quadcopter changes. That's the reason that the x and y values need to calculated for a virtual horizontal position.
   //The 0.0174533 value is phi/180 as the functions are in radians in stead of degrees.
-  compass_x_horizontal = (float)compass_x * cos(angle_pitch * -0.0174533) + (float)compass_y * sin(angle_roll * 0.0174533) * sin(angle_pitch * -0.0174533) - (float)compass_z * cos(angle_roll * 0.0174533) * sin(angle_pitch * -0.0174533);
-  compass_y_horizontal = (float)compass_y * cos(angle_roll * 0.0174533) + (float)compass_z * sin(angle_roll * 0.0174533);
+  compass_x_horizontal = (float)compass_x * cos(pitch_angle * -0.0174533) + (float)compass_y * sin(roll_angle * 0.0174533) * sin(pitch_angle * -0.0174533) - (float)compass_z * cos(roll_angle * 0.0174533) * sin(pitch_angle * -0.0174533);
+  compass_y_horizontal = (float)compass_y * cos(roll_angle * 0.0174533) + (float)compass_z * sin(roll_angle * 0.0174533);
 
   //Now that the horizontal values are known the heading can be calculated. With the following lines of code the heading is calculated in degrees.
   //Please note that the atan2 uses radians in stead of degrees. That is why the 180/3.14 is used.

@@ -1,11 +1,11 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //This part sends the telemetry data to the ground station.
-//The output for the serial monitor is PB0. Protocol is 1 start bit, 8 data bits, no parity, 1 stop bit.
+//The output for the serial monitor is PB0. Protocol is 1 arming_state bit, 8 data bits, no parity, 1 stop bit.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void send_telemetry_data(void) {
   telemetry_loop_counter++;                                                                 //Increment the telemetry_loop_counter variable.
-  if (telemetry_loop_counter == 1)telemetry_send_byte = 'J';                                //Send a J as start signature.
-  if (telemetry_loop_counter == 2)telemetry_send_byte = 'B';                                //Send a B as start signature.
+  if (telemetry_loop_counter == 1)telemetry_send_byte = 'J';                                //Send a J as arming_state signature.
+  if (telemetry_loop_counter == 2)telemetry_send_byte = 'B';                                //Send a B as arming_state signature.
   if (telemetry_loop_counter == 3) {
     check_byte = 0;
     telemetry_send_byte = error;                              //Send the error as a byte.
@@ -17,11 +17,11 @@ void send_telemetry_data(void) {
     telemetry_send_byte = telemetry_buffer_byte;                                            //Send the first 8 bytes of the temperature variable.
   }
   if (telemetry_loop_counter == 7)telemetry_send_byte = telemetry_buffer_byte >> 8;         //Send the last 8 bytes of the temperature variable.
-  if (telemetry_loop_counter == 8)telemetry_send_byte = angle_roll + 100;                   //Send the roll angle as a byte. Adding 100 prevents negative numbers.
-  if (telemetry_loop_counter == 9)telemetry_send_byte = angle_pitch + 100;                  //Send the pitch angle as a byte. Adding 100 prevents negative numbers.
-  if (telemetry_loop_counter == 10)telemetry_send_byte = start;                             //Send the error as a byte.
+  if (telemetry_loop_counter == 8)telemetry_send_byte = roll_angle + 100;                   //Send the roll angle as a byte. Adding 100 prevents negative numbers.
+  if (telemetry_loop_counter == 9)telemetry_send_byte = pitch_angle + 100;                  //Send the pitch angle as a byte. Adding 100 prevents negative numbers.
+  if (telemetry_loop_counter == 10)telemetry_send_byte = arming_state;                             //Send the error as a byte.
   if (telemetry_loop_counter == 11) {
-    if (start == 2) {                                                                       //Only send the altitude when the quadcopter is flying.
+    if (arming_state == 2) {                                                                       //Only send the altitude when the quadcopter is flying.
       telemetry_buffer_byte = 1000 + ((ground_pressure - actual_pressure) * 0.0842);        //Calculate the altitude and add 1000 to prevent negative numbers.
     }
     else {
@@ -32,12 +32,12 @@ void send_telemetry_data(void) {
   if (telemetry_loop_counter == 12)telemetry_send_byte = telemetry_buffer_byte >> 8;        //Send the last 8 bytes of the altitude variable.
 
   if (telemetry_loop_counter == 13) {
-    telemetry_buffer_byte = 1500 + takeoff_throttle;                                        //Store the take-off throttle as it can change during the next loop.
-    telemetry_send_byte = telemetry_buffer_byte;                                            //Send the first 8 bytes of the take-off throttle variable.
+    telemetry_buffer_byte = 1500 + takeoff_throttle;                                        //Store the take-off throttle_base as it can change during the next loop.
+    telemetry_send_byte = telemetry_buffer_byte;                                            //Send the first 8 bytes of the take-off throttle_base variable.
   }
-  if (telemetry_loop_counter == 14)telemetry_send_byte = telemetry_buffer_byte >> 8;        //Send the last 8 bytes of the take-off throttle variable.
+  if (telemetry_loop_counter == 14)telemetry_send_byte = telemetry_buffer_byte >> 8;        //Send the last 8 bytes of the take-off throttle_base variable.
   if (telemetry_loop_counter == 15) {
-    telemetry_buffer_byte = angle_yaw;                                                      //Store the compass heading as it can change during the next loop.
+    telemetry_buffer_byte = yaw_angle;                                                      //Store the compass heading as it can change during the next loop.
     telemetry_send_byte = telemetry_buffer_byte;                                            //Send the first 8 bytes of the compass heading variable.
   }
   if (telemetry_loop_counter == 16)telemetry_send_byte = telemetry_buffer_byte >> 8;        //Send the last 8 bytes of the compass heading variable.
@@ -83,10 +83,10 @@ void send_telemetry_data(void) {
   if (telemetry_loop_counter == 125)telemetry_loop_counter = 0;                             //After 125 loops reset the telemetry_loop_counter variable
 
   //Send the telemetry_send_byte via the serial protocol via ouput PB0.
-  //Send a start bit first.
+  //Send a arming_state bit first.
   if (telemetry_loop_counter <= 34) {
     check_byte ^= telemetry_send_byte;
-    GPIOB_BASE->BSRR = 0b1 << 16;                                                             //Reset output PB0 to 0 to create a start bit.
+    GPIOB_BASE->BSRR = 0b1 << 16;                                                             //Reset output PB0 to 0 to create a arming_state bit.
     delayMicroseconds(104);                                                                   //Delay 104us (1s/9600bps)
     for (telemetry_bit_counter = 0; telemetry_bit_counter < 8; telemetry_bit_counter ++) {    //Create a loop fore every bit in the
       if (telemetry_send_byte >> telemetry_bit_counter & 0b1) GPIOB_BASE->BSRR = 0b1 << 0;    //If the specific bit is set, set output PB0 to 1;

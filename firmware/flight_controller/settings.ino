@@ -17,21 +17,21 @@ void change_settings(void) {
   }
   error = 0;
 
-  while (channel_6 >= 1900) {
+  while (rc_aux >= 1900) {
     delayMicroseconds(3700);
     send_telemetry_data();
-    if (channel_1 > 1550)adjustable_setting_1 += (float)(channel_1 - 1550) * 0.000001;
-    if (channel_1 < 1450)adjustable_setting_1 -= (float)(1450 - channel_1) * 0.000001;
+    if (rc_roll > 1550)adjustable_setting_1 += (float)(rc_roll - 1550) * 0.000001;
+    if (rc_roll < 1450)adjustable_setting_1 -= (float)(1450 - rc_roll) * 0.000001;
     if (adjustable_setting_1 < 0)adjustable_setting_1 = 0;
     variable_1_to_adjust = adjustable_setting_1;
     
-    if (channel_2 > 1550)adjustable_setting_2 += (float)(channel_2 - 1550) * 0.000001;
-    if (channel_2 < 1450)adjustable_setting_2 -= (float)(1450 - channel_2) * 0.000001;
+    if (rc_pitch > 1550)adjustable_setting_2 += (float)(rc_pitch - 1550) * 0.000001;
+    if (rc_pitch < 1450)adjustable_setting_2 -= (float)(1450 - rc_pitch) * 0.000001;
     if (adjustable_setting_2 < 0)adjustable_setting_2 = 0;
     variable_2_to_adjust = adjustable_setting_2;
 
-    if (channel_4 > 1550)adjustable_setting_3 += (float)(channel_4 - 1550) * 0.000001;
-    if (channel_4 < 1450)adjustable_setting_3 -= (float)(1450 - channel_4) * 0.000001;
+    if (rc_yaw > 1550)adjustable_setting_3 += (float)(rc_yaw - 1550) * 0.000001;
+    if (rc_yaw < 1450)adjustable_setting_3 -= (float)(1450 - rc_yaw) * 0.000001;
     if (adjustable_setting_3 < 0)adjustable_setting_3 = 0;
     variable_3_to_adjust = adjustable_setting_3;
   }

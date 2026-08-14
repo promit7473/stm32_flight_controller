@@ -35,7 +35,7 @@ void calibrate_gyro(void) {
     //Let's take multiple gyro data samples so we can determine the average gyro offset (calibration).
     for (cal_int = 0; cal_int < 2000 ; cal_int ++) {                                  //Take 2000 readings for calibration.
       if (cal_int % 25 == 0) digitalWrite(PB4, !digitalRead(PB4));                    //Change the led status every 125 readings to indicate calibration.
-      gyro_signalen();                                                                //Read the gyro output.
+      read_imu();                                                                //Read the gyro output.
       gyro_roll_cal += gyro_roll;                                                     //Ad roll value to gyro_roll_cal.
       gyro_pitch_cal += gyro_pitch;                                                   //Ad pitch value to gyro_pitch_cal.
       gyro_yaw_cal += gyro_yaw;                                                       //Ad yaw value to gyro_yaw_cal.
@@ -52,14 +52,14 @@ void calibrate_gyro(void) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //This part reads the raw gyro and accelerometer data from the MPU-6050
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void gyro_signalen(void) {
+void read_imu(void) {
   HWire.beginTransmission(gyro_address);                       //Start communication with the gyro.
   HWire.write(0x3B);                                           //Start reading @ register 43h and auto increment with every read.
   HWire.endTransmission();                                     //End the transmission.
   HWire.requestFrom(gyro_address, 14);                         //Request 14 bytes from the MPU 6050.
-  acc_y = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the acc_x variable.
-  acc_x = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the acc_y variable.
-  acc_z = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the acc_z variable.
+  accel_y = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the accel_x variable.
+  accel_x = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the accel_y variable.
+  accel_z = HWire.read() << 8 | HWire.read();                    //Add the low and high byte to the accel_z variable.
   temperature = HWire.read() << 8 | HWire.read();              //Add the low and high byte to the temperature variable.
   gyro_roll = HWire.read() << 8 | HWire.read();                //Read high and low part of the angular data.
   gyro_pitch = HWire.read() << 8 | HWire.read();               //Read high and low part of the angular data.
@@ -68,8 +68,8 @@ void gyro_signalen(void) {
   gyro_yaw *= -1;                                              //Invert the direction of the axis.
 
   if (level_calibration_on == 0) {
-    acc_y -= acc_pitch_cal_value;                              //Subtact the manual accelerometer pitch calibration value.
-    acc_x -= acc_roll_cal_value;                               //Subtact the manual accelerometer roll calibration value.
+    accel_y -= acc_pitch_cal_value;                              //Subtact the manual accelerometer pitch calibration value.
+    accel_x -= acc_roll_cal_value;                               //Subtact the manual accelerometer roll calibration value.
   }
   if (cal_int >= 2000) {
     gyro_roll -= gyro_roll_cal;                                  //Subtact the manual gyro roll calibration value.

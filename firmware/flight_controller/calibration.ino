@@ -5,7 +5,7 @@ void calibrate_compass(void) {
   compass_calibration_on = 1;                                                //Set the compass_calibration_on variable to disable the adjustment of the raw compass values.
   red_led(HIGH);                                                             //The red led will indicate that the compass calibration is active.
   green_led(LOW);                                                            //Turn off the green led as we don't need it.
-  while (channel_2 < 1900) {                                                 //Stay in this loop until the pilot lowers the pitch stick of the transmitter.
+  while (rc_pitch < 1900) {                                                 //Stay in this loop until the pilot lowers the pitch stick of the transmitter.
     send_telemetry_data();                                                   //Send telemetry data to the ground station.
     delayMicroseconds(3700);                                                 //Simulate a 250Hz program loop.
     read_compass();                                                          //Read the raw compass values.
@@ -24,7 +24,7 @@ void calibrate_compass(void) {
 
   setup_compass();                                                           //Initiallize the compass and set the correct registers.
   read_compass();                                                            //Read and calculate the compass data.
-  angle_yaw = actual_compass_heading;                                        //Set the initial compass heading.
+  yaw_angle = actual_compass_heading;                                        //Set the initial compass heading.
 
   red_led(LOW);
   for (error = 0; error < 15; error ++) {
@@ -43,7 +43,7 @@ void calibrate_compass(void) {
 void calibrate_level(void) {
   level_calibration_on = 1;
 
-  while (channel_2 < 1100) {
+  while (rc_pitch < 1100) {
     send_telemetry_data();                                                   //Send telemetry data to the ground station.
     delay(10);
   }
@@ -55,11 +55,11 @@ void calibrate_level(void) {
 
   for (error = 0; error < 64; error ++) {
     send_telemetry_data();                                                   //Send telemetry data to the ground station.
-    gyro_signalen();
-    acc_pitch_cal_value += acc_y;
-    acc_roll_cal_value += acc_x;
-    if (acc_y > 500 || acc_y < -500)error = 80;
-    if (acc_x > 500 || acc_x < -500)error = 80;
+    read_imu();
+    acc_pitch_cal_value += accel_y;
+    acc_roll_cal_value += accel_x;
+    if (accel_y > 500 || accel_y < -500)error = 80;
+    if (accel_x > 500 || accel_x < -500)error = 80;
     delayMicroseconds(3700);
   }
 
@@ -81,18 +81,18 @@ void calibrate_level(void) {
   }
   else error = 3;
   level_calibration_on = 0;
-  gyro_signalen();
+  read_imu();
   //Accelerometer angle calculations
-  acc_total_vector = sqrt((acc_x * acc_x) + (acc_y * acc_y) + (acc_z * acc_z));    //Calculate the total accelerometer vector.
+  accel_magnitude = sqrt((accel_x * accel_x) + (accel_y * accel_y) + (accel_z * accel_z));    //Calculate the total accelerometer vector.
 
-  if (abs(acc_y) < acc_total_vector) {                                             //Prevent the asin function to produce a NaN.
-    angle_pitch_acc = asin((float)acc_y / acc_total_vector) * 57.296;              //Calculate the pitch angle.
+  if (abs(accel_y) < accel_magnitude) {                                             //Prevent the asin function to produce a NaN.
+    pitch_from_accel = asin((float)accel_y / accel_magnitude) * 57.296;              //Calculate the pitch angle.
   }
-  if (abs(acc_x) < acc_total_vector) {                                             //Prevent the asin function to produce a NaN.
-    angle_roll_acc = asin((float)acc_x / acc_total_vector) * 57.296;               //Calculate the roll angle.
+  if (abs(accel_x) < accel_magnitude) {                                             //Prevent the asin function to produce a NaN.
+    roll_from_accel = asin((float)accel_x / accel_magnitude) * 57.296;               //Calculate the roll angle.
   }
-  angle_pitch = angle_pitch_acc;                                                   //Set the gyro pitch angle equal to the accelerometer pitch angle when the quadcopter is started.
-  angle_roll = angle_roll_acc;
+  pitch_angle = pitch_from_accel;                                                   //Set the gyro pitch angle equal to the accelerometer pitch angle when the quadcopter is started.
+  roll_angle = roll_from_accel;
   loop_timer = micros();                                                           //Set the timer for the next loop.
 }
 

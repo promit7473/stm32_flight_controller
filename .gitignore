@@ -9,3 +9,6 @@ build/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Local Arduino toolchain (arduino-cli + STM32 core), not part of the project
+.toolchain/
