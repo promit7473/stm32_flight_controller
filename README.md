@@ -354,8 +354,26 @@ media/                  build photos and flight footage
 
 ## Building
 
-Arduino IDE with the libmaple STM32 core (`Arduino_STM32`), board
-`Generic STM32F103C`, upload via serial or ST-Link.
+The two STM32 sketches need the **libmaple** core
+([`Arduino_STM32`](https://github.com/rogerclarkmelbourne/Arduino_STM32)), not
+the official STM32 core. The code uses libmaple APIs directly:
+`TIMER4_BASE->CCR1`, `afio_cfg_debug_ports()`, `TwoWire HWire(2, I2C_FAST_MODE)`.
+That core also needs `arduino:sam` installed, which is where its
+`arm-none-eabi-gcc` comes from.
+
+**The telemetry receiver is not an STM32 sketch.** It targets an AVR (Arduino
+Uno) and uses `TCCR2A`/`TCCR2B`, so it must be compiled for `arduino:avr:uno`
+and needs the `LiquidCrystal` library. Building it for the STM32 fails with
+undeclared-register errors that look alarming and mean only that the board is
+wrong.
+
+| Sketch | Board (FQBN) | Flash | RAM |
+| --- | --- | --- | --- |
+| `flight_controller` | `Arduino_STM32:STM32F1:genericSTM32F103C` | 43 280 B (66%) | 4 072 B (19%) |
+| `test_bench` | `Arduino_STM32:STM32F1:genericSTM32F103C` | 40 088 B (61%) | 2 616 B (12%) |
+| `telemetry_receiver` | `arduino:avr:uno` | 9 424 B (29%) | 660 B (32%) |
+
+All three figures are from a clean build of this tree.
 
 Bring the aircraft up in this order. Each step depends on the one before it:
 
@@ -388,3 +406,29 @@ anywhere, and this project would not exist without it.
 This repository is my build of that design: my airframe, my tuning, my flights,
 and a refactor of the firmware for readability, with the mathematics written
 out in full and the loop-timing constraints documented.
+
+---
+
+## How this refactor was verified
+
+The firmware flies a real aircraft, so "it looks right" is not a standard. Each
+change was checked mechanically:
+
+- **A compiler was in the loop.** `arduino-cli` with the libmaple core builds
+  all three sketches. It caught a real collision immediately: `config.h`
+  defined `DEG_TO_RAD` and `RAD_TO_DEG`, which `Arduino.h` already provides as
+  macros.
+- **Renaming was proved complete.** A single-pass script that refuses to run
+  if a new name already exists, if any old name survives, or if any occurrence
+  count changes. 84 identifiers, 703 occurrences. Flash came out
+  byte-identical to the baseline, so code generation did not change.
+- **The shared PID was proved equivalent.** The original three blocks and the
+  new shared function were reimplemented in float32 and driven with 100 000
+  random stick, gyro and level-adjust samples per axis: 300 000 steps, zero
+  differences, integrators bit-identical.
+- **The loop split was proved free.** Flash and RAM are byte-identical before
+  and after, because the compiler inlines the static phase functions.
+
+What that does *not* cover: no hardware-in-the-loop test was run. Sensor
+drivers, timer configuration and the arming state machine are exercised only
+by the compiler. **Fly it with the propellers off first.**
