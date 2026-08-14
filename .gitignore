@@ -12,3 +12,6 @@ Desktop.ini
 
 # Local Arduino toolchain (arduino-cli + STM32 core), not part of the project
 .toolchain/
+
+# Raw phone footage kept locally; the 540p version is committed instead
+media/test_fly[[]short_video[]].mp4

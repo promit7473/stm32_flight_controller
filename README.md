@@ -16,9 +16,8 @@ this document can state exactly what the aircraft computes on each of its
 </p>
 
 <p align="center">
-  <em>Take-off under its own control. Full 18 s clip:
-  <a href="media/test_flight_540p.mp4">540p</a> ·
-  <a href="media/test_fly%5Bshort_video%5D.mp4">original 1080p</a></em>
+  <em>Take-off under its own control.
+  Full 18 s flight: <a href="media/test_flight_540p.mp4">test_flight_540p.mp4</a></em>
 </p>
 
 <p align="center">
