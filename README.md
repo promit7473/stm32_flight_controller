@@ -421,9 +421,20 @@ firmware/
   flight_controller/    the flight controller itself
   test_bench/           sensor and receiver bring-up, run this first
   telemetry_receiver/   ground-station side of the 433 MHz link
-docs/                   schematic
+docs/                   schematic, and the script that generates it
+tools/                  media tooling
 media/                  build photos, flight GIF and footage
 ```
+
+`docs/make_schematic.py` regenerates the schematic, so it stays in step with
+the firmware rather than drifting the way a hand-drawn one would.
+
+`tools/make_card_clip.py` cuts a 16:9 clip from the portrait flight footage by
+tracking the drone and panning a crop window to follow it, so the aircraft
+stays framed from the ground to altitude instead of climbing out of a fixed
+crop. Run it with `--check` first: it writes a contact sheet with the
+detection and the crop window drawn on, which is the only reliable way to see
+whether the track held.
 
 ## Wiring
 
