@@ -11,6 +11,10 @@ transform, filter and controller here is written out explicitly, which is why
 this document can state exactly what the aircraft computes on each of its
 250 loops per second.
 
+Built in 2023, then flown, re-tuned and upgraded repeatedly across my
+undergraduate years. The airframe, wiring and gains in this repository are the
+state it reached after those iterations, not a first attempt.
+
 <p align="center">
   <img src="media/test_flight.gif" alt="Quadcopter test flight, take-off" width="250">
 </p>
