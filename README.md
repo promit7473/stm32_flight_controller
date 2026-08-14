@@ -365,15 +365,36 @@ firmware/
   flight_controller/    the flight controller itself
   test_bench/           sensor and receiver bring-up, run this first
   telemetry_receiver/   ground-station side of the 433 MHz link
-docs/                   wiring diagram
+docs/                   schematic
 media/                  build photos, flight GIF and footage
 ```
 
 ## Wiring
 
 <p align="center">
-  <img src="docs/wiring_diagram.svg" alt="Flight controller wiring diagram" width="900">
+  <img src="docs/schematic.svg" alt="Flight controller interconnect schematic" width="980">
 </p>
+
+### Pin assignment
+
+Taken from the firmware, not from a drawing.
+
+| Pin | Peripheral | Net | Connects to |
+| --- | --- | --- | --- |
+| PA0 | TIM2_CH1 input capture | `PPM` | RC receiver, PPM out |
+| PB10 | I2C2 SCL | `SCL` | MPU-6050, HMC5883L, MS5611 |
+| PB11 | I2C2 SDA | `SDA` | MPU-6050, HMC5883L, MS5611 |
+| PA9 | USART1 TX | `GPS_RX` | u-blox GNSS, RX |
+| PA10 | USART1 RX | `GPS_TX` | u-blox GNSS, TX |
+| PB0 | GPIO | `TLM_TX` | 433 MHz telemetry radio |
+| PA4 | ADC_IN4 | `VBAT_SNS` | 10k/1k divider from the pack |
+| PB6 | TIM4_CH1 PWM | `ESC1` | front-right motor, CCW |
+| PB7 | TIM4_CH2 PWM | `ESC2` | rear-right motor, CW |
+| PB8 | TIM4_CH3 PWM | `ESC3` | rear-left motor, CCW |
+| PB9 | TIM4_CH4 PWM | `ESC4` | front-left motor, CW |
+| PB3 | GPIO | `LED_GRN` | green LED, flight mode |
+| PB4 | GPIO | `LED_RED` | red LED, error |
+| PC13 | GPIO | `LED_BRD` | on-board LED, GPS fix, inverted |
 
 Every connection above is cross-checked against the firmware rather than
 copied from a drawing. The timer compare registers give the ESC pins, the
