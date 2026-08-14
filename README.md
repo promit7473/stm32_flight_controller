@@ -348,9 +348,25 @@ firmware/
   flight_controller/    the flight controller itself
   test_bench/           sensor and receiver bring-up, run this first
   telemetry_receiver/   ground-station side of the 433 MHz link
-docs/                   schematics
+docs/                   wiring diagram
 media/                  build photos and flight footage
 ```
+
+## Wiring
+
+<p align="center">
+  <img src="docs/wiring_diagram.svg" alt="Flight controller wiring diagram" width="900">
+</p>
+
+Every connection above is cross-checked against the firmware rather than
+copied from a drawing. The timer compare registers give the ESC pins, the
+input-capture configuration gives the receiver pin, `Serial1` gives the GPS
+pins, and `HWire(2, ...)` gives the I2C pins.
+
+The battery divider is confirmed arithmetically: the firmware divides the ADC
+count by 112.81, and a 10k/1k divider into a 12-bit ADC on a 3.3 V reference
+gives 4095 / (3.3 x 11) = 112.8. The constant in the code and the resistor
+values agree, so neither is guesswork.
 
 ## Building
 
