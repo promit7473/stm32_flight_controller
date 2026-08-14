@@ -37,8 +37,8 @@ void check_barometer(void) {
     Serial.print("C6 = ");
     Serial.println(C[6]);
 
-    OFF_C2 = C[2] * pow(2, 16);                                   //This value is pre-calculated to offload the main program loop.
-    SENS_C1 = C[1] * pow(2, 15);                                  //This value is pre-calculated to offload the main program loop.
+    OFF_C2 = C[2] * 65536.0;                                   //This value is pre-calculated to offload the main program loop.
+    SENS_C1 = C[1] * 32768.0;                                  //This value is pre-calculated to offload the main program loop.
 
     start = 0;
   }
@@ -93,11 +93,11 @@ void check_barometer(void) {
       dT *= -1;
       dT += raw_temperature;
 
-      OFF = OFF_C2 + ((int64_t)dT * (int64_t)C[4]) / pow(2, 7);
+      OFF = OFF_C2 + ((int64_t)dT * (int64_t)C[4]) / 128.0;
 
-      SENS = SENS_C1 + ((int64_t)dT * (int64_t)C[3]) / pow(2, 8);
+      SENS = SENS_C1 + ((int64_t)dT * (int64_t)C[3]) / 256.0;
 
-      P = ((raw_pressure * SENS) / pow(2, 21) - OFF) / pow(2, 15);
+      P = ((raw_pressure * SENS) / 2097152.0 - OFF) / 32768.0;
 
       if (actual_pressure == 0) {
         actual_pressure = P;

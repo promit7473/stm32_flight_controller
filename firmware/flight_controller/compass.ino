@@ -1,10 +1,10 @@
 
 void read_compass() {
-  HWire.beginTransmission(compass_address);                     //Start communication with the compass.
+  HWire.beginTransmission(COMPASS_I2C_ADDRESS);                     //Start communication with the compass.
   HWire.write(0x03);                                            //We want to arming_state reading at the hexadecimal location 0x03.
   HWire.endTransmission();                                      //End the transmission with the gyro.
 
-  HWire.requestFrom(compass_address, 6);                        //Request 6 bytes from the compass.
+  HWire.requestFrom(COMPASS_I2C_ADDRESS, 6);                        //Request 6 bytes from the compass.
   compass_y = HWire.read() << 8 | HWire.read();                 //Add the low and high byte to the compass_y variable.
   compass_y *= -1;                                              //Invert the direction of the axis.
   compass_z = HWire.read() << 8 | HWire.read();                 //Add the low and high byte to the compass_z variable.;
@@ -38,7 +38,7 @@ void read_compass() {
 
 //At startup the registers of the compass need to be set. After that the calibration offset and scale values are calculated.
 void setup_compass() {
-  HWire.beginTransmission(compass_address);                     //Start communication with the compass.
+  HWire.beginTransmission(COMPASS_I2C_ADDRESS);                     //Start communication with the compass.
   HWire.write(0x00);                                            //We want to write to the Configuration Register A (00 hex).
   HWire.write(0x78);                                            //Set the Configuration Regiser A bits as 01111000 to set sample rate (average of 8 at 75Hz).
   HWire.write(0x20);                                            //Set the Configuration Regiser B bits as 00100000 to set the gain at +/-1.3Ga.

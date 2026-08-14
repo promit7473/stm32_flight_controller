@@ -1,75 +1,89 @@
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Subroutine for calculating pid outputs
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//The PID controllers are explained in part 5 of the YMFC-3D video session:
-//https://youtu.be/JBvnB0279-Q
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void calculate_pid(void) {
+///////////////////////////////////////////////////////////////////////////////
+// Rate control: three axes, one controller
+///////////////////////////////////////////////////////////////////////////////
+// The inner loop regulates angular *rate*, not angle. Roll, pitch and yaw ran
+// as three copies of the same twelve lines, which meant a fix to one axis had
+// to be remembered for the other two. They now share updateRatePid(), and each
+// axis keeps its own gains and state in a RatePid.
+//
+// Two properties of this discretisation are worth knowing before touching the
+// gains, because they are not the textbook ones:
+//
+//   ki  accumulates once per loop, not per second, so the continuous-time
+//       integral gain is ki * LOOP_FREQUENCY_HZ.
+//   kd  multiplies the difference between successive errors with no division
+//       by dt, so the continuous-time derivative gain is kd / LOOP_FREQUENCY_HZ.
+//
+// The integrator is clamped to the same limit as the output. That is what
+// stops wind-up from parking a motor at full throttle after a long
+// disturbance: without it the integrator can grow without bound while the
+// output sits saturated, and it then has to unwind before the axis responds.
+///////////////////////////////////////////////////////////////////////////////
 
-  //The PID set point in degrees per second is determined by the roll receiver input.
-  //In the case of deviding by 3 the max roll rate is aprox 164 degrees per second ( (500-8)/3 = 164d/s ).
-  roll_rate_setpoint = 0;
-  //We need a little dead band of 16us for better results.
-  if (roll_command_us > 1508)roll_rate_setpoint = roll_command_us - 1508;
-  else if (roll_command_us < 1492)roll_rate_setpoint = roll_command_us - 1492;
-
-  roll_rate_setpoint -= roll_level_adjust;                                          //Subtract the angle correction from the standardized receiver roll input value.
-  roll_rate_setpoint /= 3.0;                                                        //Divide the setpoint for the PID roll controller by 3 to get angles in degrees.
-
-
-  //The PID set point in degrees per second is determined by the pitch receiver input.
-  //In the case of deviding by 3 the max pitch rate is aprox 164 degrees per second ( (500-8)/3 = 164d/s ).
-  pitch_rate_setpoint = 0;
-  //We need a little dead band of 16us for better results.
-  if (pitch_command_us > 1508)pitch_rate_setpoint = pitch_command_us - 1508;
-  else if (pitch_command_us < 1492)pitch_rate_setpoint = pitch_command_us - 1492;
-
-  pitch_rate_setpoint -= pitch_level_adjust;                                        //Subtract the angle correction from the standardized receiver pitch input value.
-  pitch_rate_setpoint /= 3.0;                                                       //Divide the setpoint for the PID pitch controller by 3 to get angles in degrees.
-
-  //The PID set point in degrees per second is determined by the yaw receiver input.
-  //In the case of deviding by 3 the max yaw rate is aprox 164 degrees per second ( (500-8)/3 = 164d/s ).
-  yaw_rate_setpoint = 0;
-  //We need a little dead band of 16us for better results.
-  if (rc_throttle > 1050) { //Do not yaw when turning off the motors.
-    if (rc_yaw > 1508)yaw_rate_setpoint = (rc_yaw - 1508) / 3.0;
-    else if (rc_yaw < 1492)yaw_rate_setpoint = (rc_yaw - 1492) / 3.0;
+// Rate demand from a stick, in degrees per second.
+//
+// The dead band matters more than it looks: a receiver at rest jitters by a
+// few microseconds, and without it the aircraft would chase that jitter.
+static float rateSetpointFromStick(int32_t stick_us, float level_adjust) {
+  float setpoint = 0.0f;
+  if (stick_us > RC_CENTRE_US + RC_DEAD_BAND_US) {
+    setpoint = stick_us - (RC_CENTRE_US + RC_DEAD_BAND_US);
+  } else if (stick_us < RC_CENTRE_US - RC_DEAD_BAND_US) {
+    setpoint = stick_us - (RC_CENTRE_US - RC_DEAD_BAND_US);
   }
-
-  //Roll calculations
-  pid_error = roll_rate_filtered - roll_rate_setpoint;
-  roll_integrator += roll_rate_ki * pid_error;
-  if (roll_integrator > roll_output_limit)roll_integrator = roll_output_limit;
-  else if (roll_integrator < roll_output_limit * -1)roll_integrator = roll_output_limit * -1;
-
-  roll_output = roll_rate_kp * pid_error + roll_integrator + roll_rate_kd * (pid_error - roll_previous_error);
-  if (roll_output > roll_output_limit)roll_output = roll_output_limit;
-  else if (roll_output < roll_output_limit * -1)roll_output = roll_output_limit * -1;
-
-  roll_previous_error = pid_error;
-
-  //Pitch calculations
-  pid_error = pitch_rate_filtered - pitch_rate_setpoint;
-  pitch_integrator += pitch_rate_ki * pid_error;
-  if (pitch_integrator > pitch_output_limit)pitch_integrator = pitch_output_limit;
-  else if (pitch_integrator < pitch_output_limit * -1)pitch_integrator = pitch_output_limit * -1;
-
-  pitch_output = pitch_rate_kp * pid_error + pitch_integrator + pitch_rate_kd * (pid_error - pitch_previous_error);
-  if (pitch_output > pitch_output_limit)pitch_output = pitch_output_limit;
-  else if (pitch_output < pitch_output_limit * -1)pitch_output = pitch_output_limit * -1;
-
-  pitch_previous_error = pid_error;
-
-  //Yaw calculations
-  pid_error = yaw_rate_filtered - yaw_rate_setpoint;
-  yaw_integrator += yaw_rate_ki * pid_error;
-  if (yaw_integrator > yaw_output_limit)yaw_integrator = yaw_output_limit;
-  else if (yaw_integrator < yaw_output_limit * -1)yaw_integrator = yaw_output_limit * -1;
-
-  yaw_output = yaw_rate_kp * pid_error + yaw_integrator + yaw_rate_kd * (pid_error - yaw_previous_error);
-  if (yaw_output > yaw_output_limit)yaw_output = yaw_output_limit;
-  else if (yaw_output < yaw_output_limit * -1)yaw_output = yaw_output_limit * -1;
-
-  yaw_previous_error = pid_error;
+  // level_adjust is the outer attitude loop: a P controller on angle whose
+  // output is a rate demand. Subtracting it makes level flight the fixed point.
+  setpoint -= level_adjust;
+  return setpoint / RC_US_PER_DEG_PER_SEC;
 }
 
+// One PID step. Returns the output and stores it in the controller.
+static float updateRatePid(RatePid &pid, float measured_rate, float setpoint) {
+  const float error = measured_rate - setpoint;
+
+  pid.integrator += pid.ki * error;
+  if (pid.integrator > pid.limit) pid.integrator = pid.limit;
+  else if (pid.integrator < -pid.limit) pid.integrator = -pid.limit;
+
+  float output = pid.kp * error
+               + pid.integrator
+               + pid.kd * (error - pid.previous_error);
+
+  if (output > pid.limit) output = pid.limit;
+  else if (output < -pid.limit) output = -pid.limit;
+
+  pid.previous_error = error;
+  pid.output = output;
+  return output;
+}
+
+// Clear one axis. Called when arming and when the throttle returns to idle, so
+// that a stale integrator cannot kick the aircraft on the next take-off.
+static void resetRatePid(RatePid &pid) {
+  pid.integrator = 0.0f;
+  pid.previous_error = 0.0f;
+  pid.output = 0.0f;
+}
+
+void resetAllRatePids(void) {
+  resetRatePid(roll_pid);
+  resetRatePid(pitch_pid);
+  resetRatePid(yaw_pid);
+}
+
+void calculate_pid(void) {
+  roll_rate_setpoint = rateSetpointFromStick(roll_command_us, roll_level_adjust);
+  pitch_rate_setpoint = rateSetpointFromStick(pitch_command_us, pitch_level_adjust);
+
+  // Yaw takes the stick directly: there is no angle to hold, only a rate. The
+  // guard stops the aircraft yawing while the throttle is being held down to
+  // disarm, which is the same stick position that stops the motors.
+  yaw_rate_setpoint = 0.0f;
+  if (rc_throttle > RC_THROTTLE_IDLE_US) {
+    yaw_rate_setpoint = rateSetpointFromStick(rc_yaw, 0.0f);
+  }
+
+  updateRatePid(roll_pid, roll_rate_filtered, roll_rate_setpoint);
+  updateRatePid(pitch_pid, pitch_rate_filtered, pitch_rate_setpoint);
+  updateRatePid(yaw_pid, yaw_rate_filtered, yaw_rate_setpoint);
+}

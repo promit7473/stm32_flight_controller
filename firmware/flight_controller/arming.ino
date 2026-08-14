@@ -16,15 +16,7 @@ void start_stop_takeoff(void) {
       takeoff_throttle = manual_takeoff_throttle - 1500;                           //Use the manual hover throttle_base.
       takeoff_detected = 1;                                                        //Set the auto take-off detection to 1, indicated that the quadcopter is flying.
       //Reset the PID controllers for a smooth take-off.
-      roll_integrator = 0;
-      roll_previous_error = 0;
-      roll_output = 0;
-      pitch_integrator = 0;
-      pitch_previous_error = 0;
-      pitch_output = 0;
-      yaw_integrator = 0;
-      yaw_previous_error = 0;
-      yaw_output = 0;
+      resetAllRatePids();                        //Clear stale integrators so take-off is smooth.
     }
     else if (manual_takeoff_throttle) {                                            //If the manual hover throttle_base value is invalid.
       error = 5;                                                                   //Error = 5.
@@ -45,15 +37,7 @@ void start_stop_takeoff(void) {
       if (throttle_base > motor_idle_speed)throttle_base--;                                  //Lower the throttle_base to the motor_idle_speed variable.
       //Reset the PID controllers for a smooth take-off.
       else {                                                                       //When the throttle_base is back at idle speed reset the PID controllers.
-        roll_integrator = 0;
-        roll_previous_error = 0;
-        roll_output = 0;
-        pitch_integrator = 0;
-        pitch_previous_error = 0;
-        pitch_output = 0;
-        yaw_integrator = 0;
-        yaw_previous_error = 0;
-        yaw_output = 0;
+        resetAllRatePids();                        //Clear stale integrators so take-off is smooth.
       }
     }
     if (accel_z_short_average_total / 25 - accel_magnitude_at_arm > 800) {        //A take-off is detected when the quadcopter is accelerating.

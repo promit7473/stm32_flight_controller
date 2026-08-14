@@ -17,30 +17,25 @@
 
 #include <EEPROM.h>
 #include <Wire.h>                          //Include the Wire.h library so we can communicate with the gyro.
+#include "config.h"                        //Frame, sensor, timing and controller configuration.
 TwoWire HWire (2, I2C_FAST_MODE);          //Initiate I2C port 2 at 400kHz.
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//PID gain and limit settings
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-float roll_rate_kp = 1.3;               //Gain setting for the pitch and roll P-controller (default = 1.3).
-float roll_rate_ki = 0.04;              //Gain setting for the pitch and roll I-controller (default = 0.04).
-float roll_rate_kd = 18.0;              //Gain setting for the pitch and roll D-controller (default = 18.0).
-int roll_output_limit = 400;                    //Maximum output of the PID-controller (+/-).
+///////////////////////////////////////////////////////////////////////////////
+//Rate controllers
+///////////////////////////////////////////////////////////////////////////////
+//Gains and state per axis. All three are driven by the same updateRatePid()
+//in control_pid.ino, so a change to the algorithm applies to every axis.
+//Roll and pitch share gains because the frame is symmetric about both.
+//Yaw carries no derivative term: it has the largest rotational inertia and the
+//least aerodynamic damping, so D amplifies motor noise for little phase lead.
+RatePid roll_pid  = { 1.3f, 0.04f, 18.0f, 400.0f, 0.0f, 0.0f, 0.0f };
+RatePid pitch_pid = { 1.3f, 0.04f, 18.0f, 400.0f, 0.0f, 0.0f, 0.0f };
+RatePid yaw_pid   = { 4.0f, 0.02f,  0.0f, 400.0f, 0.0f, 0.0f, 0.0f };
 
-float pitch_rate_kp = roll_rate_kp;  //Gain setting for the pitch P-controller.
-float pitch_rate_ki = roll_rate_ki;  //Gain setting for the pitch I-controller.
-float pitch_rate_kd = roll_rate_kd;  //Gain setting for the pitch D-controller.
-int pitch_output_limit = roll_output_limit;          //Maximum output of the PID-controller (+/-).
-
-float yaw_rate_kp = 4.0;                //Gain setting for the pitch P-controller (default = 4.0).
-float yaw_rate_ki = 0.02;               //Gain setting for the pitch I-controller (default = 0.02).
-float yaw_rate_kd = 0.0;                //Gain setting for the pitch D-controller (default = 0.0).
-int yaw_output_limit = 400;                     //Maximum output of the PID-controller (+/-).
-
-//During flight the battery voltage drops and the motors are spinning at a lower RPM. This has a negative effecct on the
+//During flight the battery voltage drops and the motors are spinning at a lower RPM. This has a negative effect on the
 //altitude hold function. With the battery_compensation variable it's possible to compensate for the battery voltage drop.
 //Increase this value when the quadcopter drops due to a lower battery voltage during a non altitude hold flight.
-float battery_compensation = 40.0;         
+float battery_compensation = 40.0;
 
 float altitude_kp = 1.4;           //Gain setting for the altitude P-controller (default = 1.4).
 float altitude_ki = 0.2;           //Gain setting for the altitude I-controller (default = 0.2).
@@ -55,13 +50,7 @@ float declination = 0.0;                   //Set the declination between the mag
 int16_t manual_takeoff_throttle = 1500;    //Enter the manual hover point when auto take-off detection is not desired (between 1400 and 1600).
 int16_t motor_idle_speed = 1100;           //Enter the minimum throttle_base pulse of the motors when they idle (between 1000 and 1200). 1170 for DJI
 
-uint8_t gyro_address = 0x68;               //The I2C address of the MPU-6050 is 0x68 in hexadecimal form.
-uint8_t MS5611_address = 0x77;             //The I2C address of the MS5611 barometer is 0x77 in hexadecimal form.
-uint8_t compass_address = 0x1E;            //The I2C address of the HMC5883L is 0x1E in hexadecimal form.
-
 float low_battery_warning = 10.5;          //Set the battery warning at 10.5V (default = 10.5V).
-
-#define STM32_board_LED PC13               //Change PC13 if the LED on the STM32 is connected to another output.
 
 //Tuning parameters/settings is explained in this video: https://youtu.be/ys-YpOaA2ME
 #define variable_1_to_adjust dummy_float   //Change dummy_float to any setting that you want to tune.
@@ -115,9 +104,10 @@ uint32_t loop_timer, error_timer, flight_mode_timer;
 
 float roll_level_adjust, pitch_level_adjust;
 float pid_error;
-float roll_integrator, roll_rate_setpoint, roll_rate_filtered, roll_output, roll_previous_error;
-float pitch_integrator, pitch_rate_setpoint, pitch_rate_filtered, pitch_output, pitch_previous_error;
-float yaw_integrator, yaw_rate_setpoint, yaw_rate_filtered, yaw_output, yaw_previous_error;
+//Integrator, previous error and output now live in the RatePid structs above.
+float roll_rate_setpoint, roll_rate_filtered;
+float pitch_rate_setpoint, pitch_rate_filtered;
+float yaw_rate_setpoint, yaw_rate_filtered;
 float roll_from_accel, pitch_from_accel, pitch_angle, roll_angle, yaw_angle;
 float battery_voltage, dummy_float;
 
@@ -185,8 +175,8 @@ void setup() {
 
   pinMode(PB3, OUTPUT);                                         //Set PB3 as output for green LED.
   pinMode(PB4, OUTPUT);                                         //Set PB4 as output for red LED.
-  pinMode(STM32_board_LED, OUTPUT);                             //This is the LED on the STM32 board. Used for GPS indication.
-  digitalWrite(STM32_board_LED, HIGH);                          //Turn the LED on the STM32 off. The LED function is inverted. Check the STM32 schematic.
+  pinMode(BOARD_LED_PIN, OUTPUT);                             //This is the LED on the STM32 board. Used for GPS indication.
+  digitalWrite(BOARD_LED_PIN, HIGH);                          //Turn the LED on the STM32 off. The LED function is inverted. Check the STM32 schematic.
 
   green_led(LOW);                                               //Set output PB3 low.
   red_led(HIGH);                                                //Set output PB4 high.
@@ -208,7 +198,7 @@ void setup() {
 
   //Check if the MPU-6050 is responding.
   HWire.begin();                                                //Start the I2C as master
-  HWire.beginTransmission(gyro_address);                        //Start communication with the MPU-6050.
+  HWire.beginTransmission(GYRO_I2C_ADDRESS);                        //Start communication with the MPU-6050.
   error = HWire.endTransmission();                              //End the transmission and register the exit status.
   while (error != 0) {                                          //Stay in this loop because the MPU-6050 did not responde.
     error = 1;                                                  //Set the error status to 1.
@@ -217,7 +207,7 @@ void setup() {
   }
 
   //Check if the compass is responding.
-  HWire.beginTransmission(compass_address);                     //Start communication with the HMC5883L.
+  HWire.beginTransmission(COMPASS_I2C_ADDRESS);                     //Start communication with the HMC5883L.
   error = HWire.endTransmission();                              //End the transmission and register the exit status.
   while (error != 0) {                                          //Stay in this loop because the HMC5883L did not responde.
     error = 2;                                                  //Set the error status to 2.
@@ -226,7 +216,7 @@ void setup() {
   }
 
   //Check if the MS5611 barometer is responding.
-  HWire.beginTransmission(MS5611_address);                      //Start communication with the MS5611.
+  HWire.beginTransmission(BAROMETER_I2C_ADDRESS);                      //Start communication with the MS5611.
   error = HWire.endTransmission();                              //End the transmission and register the exit status.
   while (error != 0) {                                          //Stay in this loop because the MS5611 did not responde.
     error = 3;                                                  //Set the error status to 2.
@@ -273,16 +263,16 @@ void setup() {
   //For calculating the pressure the 6 calibration values need to be polled from the MS5611.
   //These 2 byte values are stored in the memory location 0xA2 and up.
   for (arming_state = 1; arming_state <= 6; arming_state++) {
-    HWire.beginTransmission(MS5611_address);                    //Start communication with the MPU-6050.
+    HWire.beginTransmission(BAROMETER_I2C_ADDRESS);                    //Start communication with the MPU-6050.
     HWire.write(0xA0 + arming_state * 2);                              //Send the address that we want to read.
     HWire.endTransmission();                                    //End the transmission.
 
-    HWire.requestFrom(MS5611_address, 2);                       //Request 2 bytes from the MS5611.
+    HWire.requestFrom(BAROMETER_I2C_ADDRESS, 2);                       //Request 2 bytes from the MS5611.
     C[arming_state] = HWire.read() << 8 | HWire.read();                //Add the low and high byte to the C[x] calibration variable.
   }
 
-  OFF_C2 = C[2] * pow(2, 16);                                   //This value is pre-calculated to offload the main program loop.
-  SENS_C1 = C[1] * pow(2, 15);                                  //This value is pre-calculated to offload the main program loop.
+  OFF_C2 = C[2] * 65536.0;                                   //This value is pre-calculated to offload the main program loop.
+  SENS_C1 = C[1] * 32768.0;                                  //This value is pre-calculated to offload the main program loop.
 
   //The MS5611 needs a few readings to stabilize.
   for (arming_state = 0; arming_state < 100; arming_state++) {                       //This loop runs 100 times.
@@ -442,10 +432,10 @@ void loop() {
 
   if (arming_state == 2) {                                                                //The motors are started.
     if (throttle_base > 1800) throttle_base = 1800;                                          //We need some room to keep full control at full throttle_base.
-    motor_front_right = throttle_base - pitch_output + roll_output - yaw_output;        //Calculate the pulse for esc 1 (front-right - CCW).
-    motor_rear_right = throttle_base + pitch_output + roll_output + yaw_output;        //Calculate the pulse for esc 2 (rear-right - CW).
-    motor_rear_left = throttle_base + pitch_output - roll_output - yaw_output;        //Calculate the pulse for esc 3 (rear-left - CCW).
-    motor_front_left = throttle_base - pitch_output - roll_output + yaw_output;        //Calculate the pulse for esc 4 (front-left - CW).
+    motor_front_right = throttle_base - pitch_pid.output + roll_pid.output - yaw_pid.output;        //Calculate the pulse for esc 1 (front-right - CCW).
+    motor_rear_right = throttle_base + pitch_pid.output + roll_pid.output + yaw_pid.output;        //Calculate the pulse for esc 2 (rear-right - CW).
+    motor_rear_left = throttle_base + pitch_pid.output - roll_pid.output - yaw_pid.output;        //Calculate the pulse for esc 3 (rear-left - CCW).
+    motor_front_left = throttle_base - pitch_pid.output - roll_pid.output + yaw_pid.output;        //Calculate the pulse for esc 4 (front-left - CW).
 
     if (battery_voltage < 12.40 && battery_voltage > 6.0) {                        //Is the battery connected?
       motor_front_right += (12.40 - battery_voltage) * battery_compensation;                   //Compensate the esc-1 pulse for voltage drop.

@@ -43,7 +43,7 @@ void read_gps(void) {
   if (new_line_found == 1) {                                                                             //If a new NMEA line is found.
     new_line_found = 0;                                                                                  //Reset the new_line_found variable for the next line.
     if (incoming_message[4] == 'L' && incoming_message[5] == 'L' && incoming_message[7] == ',') {     //When there is no GPS fix or latitude/longitude information available.
-      digitalWrite(STM32_board_LED, !digitalRead(STM32_board_LED));                                      //Change the LED on the STM32 to indicate GPS reception.
+      digitalWrite(BOARD_LED_PIN, !digitalRead(BOARD_LED_PIN));                                      //Change the LED on the STM32 to indicate GPS reception.
       //Set some variables to 0 if no valid information is found by the GPS module. This is needed for GPS lost when flying.
       l_lat_gps = 0;
       l_lon_gps = 0;
@@ -134,8 +134,8 @@ void read_gps(void) {
   }
 
   if (new_gps_data_available) {                                                                           //If there is a new set of GPS data available.
-    if (number_used_sats < 8)digitalWrite(STM32_board_LED, !digitalRead(STM32_board_LED));                //Change the LED on the STM32 to indicate GPS reception.
-    else digitalWrite(STM32_board_LED, LOW);                                                              //Turn the LED on the STM solid on (LED function is inverted). Check the STM32 schematic.
+    if (number_used_sats < 8)digitalWrite(BOARD_LED_PIN, !digitalRead(BOARD_LED_PIN));                //Change the LED on the STM32 to indicate GPS reception.
+    else digitalWrite(BOARD_LED_PIN, LOW);                                                              //Turn the LED on the STM solid on (LED function is inverted). Check the STM32 schematic.
     gps_watchdog_timer = millis();                                                                        //Reset the GPS watch dog tmer.
     new_gps_data_available = 0;                                                                           //Reset the new_gps_data_available variable.
 
