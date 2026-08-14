@@ -95,17 +95,23 @@ than 4050 µs. Section 8 explains why the timing is not merely a nicety.
 The MPU-6050 is configured for ±500 °/s, which the datasheet specifies as
 **65.5 LSB per °/s**. Angular rate in engineering units is therefore
 
-$$\omega = \frac{g_{\text{raw}}}{65.5}\ \ [^\circ/\text{s}]$$
+```math
+\omega = \frac{g_{\text{raw}}}{65.5}\ \ [^\circ/\text{s}]
+```
 
 Raw rates are noisy, so each axis is low-pass filtered with a first-order IIR:
 
-$$\omega_f[k] = 0.7\,\omega_f[k-1] + 0.3\,\omega[k]$$
+```math
+\omega_f[k] = 0.7\,\omega_f[k-1] + 0.3\,\omega[k]
+```
 
 This is an exponential moving average with smoothing factor $\alpha = 0.3$.
 Its time constant and −3 dB cutoff at $f_s = 250$ Hz are
 
-$$\tau = \frac{\Delta t}{\alpha} \approx 13\ \text{ms},
-\qquad f_c = \frac{-\ln(1-\alpha)}{2\pi\,\Delta t} \approx 14\ \text{Hz}$$
+```math
+\tau = \frac{\Delta t}{\alpha} \approx 13\ \text{ms},
+\qquad f_c = \frac{-\ln(1-\alpha)}{2\pi\,\Delta t} \approx 14\ \text{Hz}
+```
 
 Low enough to reject propeller vibration, high enough to leave the rate loop
 phase margin intact.
@@ -114,12 +120,16 @@ phase margin intact.
 
 **Integration.** Each axis integrates rate into angle:
 
-$$\theta[k] = \theta[k-1] + \omega\,\Delta t$$
+```math
+\theta[k] = \theta[k-1] + \omega\,\Delta t
+```
 
 In the code this appears as the constant `0.0000611`, which is exactly
 
-$$\frac{1}{250 \times 65.5} = \frac{\Delta t}{\text{LSB per }^\circ/\text{s}}
-= 6.107\times10^{-5}$$
+```math
+\frac{1}{250 \times 65.5} = \frac{\Delta t}{\text{LSB per }^\circ/\text{s}}
+= 6.107\times10^{-5}
+```
 
 so the multiply converts raw counts straight to degrees, folding the sensor
 scale and the sample period into one constant.
@@ -128,8 +138,10 @@ scale and the sample period into one constant.
 aircraft, so when the airframe rotates about $z$ some roll becomes pitch and
 vice versa. To first order in a single 4 ms step:
 
-$$\theta_p \mathrel{-}= \theta_r \sin(\omega_y \Delta t), \qquad
-\theta_r \mathrel{+}= \theta_p \sin(\omega_y \Delta t)$$
+```math
+\theta_p \mathrel{-}= \theta_r \sin(\omega_y \Delta t), \qquad
+\theta_r \mathrel{+}= \theta_p \sin(\omega_y \Delta t)
+```
 
 The code's `0.000001066` is $6.107\times10^{-5} \times \pi/180$, converting
 the yaw step to radians for `sin()` in the same constant.
@@ -137,10 +149,12 @@ the yaw step to radians for `sin()` in the same constant.
 **Gravity reference.** The accelerometer gives an absolute but noisy attitude,
 valid only when specific force is dominated by gravity:
 
-$$\lVert a \rVert = \sqrt{a_x^2 + a_y^2 + a_z^2}, \qquad
+```math
+\lVert a \rVert = \sqrt{a_x^2 + a_y^2 + a_z^2}, \qquad
 \theta_{p,\text{acc}} = \arcsin\!\left(\frac{a_y}{\lVert a \rVert}\right),
 \qquad
-\theta_{r,\text{acc}} = \arcsin\!\left(\frac{a_x}{\lVert a \rVert}\right)$$
+\theta_{r,\text{acc}} = \arcsin\!\left(\frac{a_x}{\lVert a \rVert}\right)
+```
 
 Both are guarded by `abs(a) < |a|` so `asin` can never receive an argument
 outside $[-1,1]$ and return NaN. A single NaN here would propagate into the
@@ -149,12 +163,16 @@ angles, the setpoints and the motor outputs within one loop.
 **Complementary filter.** Gyro integration drifts; the accelerometer is noisy
 but unbiased. Blending them:
 
-$$\theta = 0.9996\,(\theta + \omega\Delta t) + 0.0004\,\theta_{\text{acc}}$$
+```math
+\theta = 0.9996\,(\theta + \omega\Delta t) + 0.0004\,\theta_{\text{acc}}
+```
 
 This is a first-order complementary filter with
 
-$$\tau = \Delta t\,\frac{\alpha}{1-\alpha}
-= 0.004 \times \frac{0.9996}{0.0004} \approx 10\ \text{s}$$
+```math
+\tau = \Delta t\,\frac{\alpha}{1-\alpha}
+= 0.004 \times \frac{0.9996}{0.0004} \approx 10\ \text{s}
+```
 
 Gyro data passes above ~0.016 Hz, accelerometer below. Ten seconds is long
 enough that a coordinated turn does not tilt the estimate, short enough to
@@ -163,9 +181,15 @@ wash out gyro bias.
 **Heading.** The magnetometer is tilt-compensated by rotating the measurement
 into the horizontal plane using the current roll $\phi$ and pitch $\theta$:
 
-$$X_h = X\cos\theta + Y\sin\phi\sin\theta - Z\cos\phi\sin\theta$$
-$$Y_h = Y\cos\phi + Z\sin\phi$$
-$$\psi = \mathrm{atan2}(Y_h,\,X_h) + \delta$$
+```math
+X_h = X\cos\theta + Y\sin\phi\sin\theta - Z\cos\phi\sin\theta
+```
+```math
+Y_h = Y\cos\phi + Z\sin\phi
+```
+```math
+\psi = \mathrm{atan2}(Y_h,\,X_h) + \delta
+```
 
 where $\delta$ is magnetic declination. The gyro-integrated yaw is then pulled
 toward this heading by $1/1200$ of the deviation each loop, a ~4.8 s time
@@ -177,7 +201,9 @@ the estimate.
 The inner loop regulates **angular rate**, not angle. Stick position becomes a
 rate demand, with a 16 µs dead band around centre:
 
-$$\omega_{sp} = \frac{u_{\text{stick}} - 1500 \mp 8}{3} - 15\,\theta$$
+```math
+\omega_{sp} = \frac{u_{\text{stick}} - 1500 \mp 8}{3} - 15\,\theta
+```
 
 Dividing by 3 gives a full-stick rate of $(500-8)/3 \approx 164\ ^\circ/\text{s}$.
 
@@ -186,14 +212,20 @@ on angle whose output is a rate demand. Level flight is the fixed point, and
 holding the stick over commands a steady rate rather than a steady angle. The
 cascade is therefore
 
-$$\underbrace{\theta \to \omega_{sp}}_{\text{P, gain }15}
+```math
+\underbrace{\theta \to \omega_{sp}}_{\text{P, gain }15}
 \quad\longrightarrow\quad
-\underbrace{\omega_{sp} \to u}_{\text{PID}}$$
+\underbrace{\omega_{sp} \to u}_{\text{PID}}
+```
 
 Each axis then runs a discrete PID on the rate error $e = \omega_f - \omega_{sp}$:
 
-$$I[k] = \mathrm{clamp}\big(I[k-1] + K_i\,e[k],\ \pm u_{max}\big)$$
-$$u[k] = \mathrm{clamp}\big(K_p\,e[k] + I[k] + K_d\,(e[k]-e[k-1]),\ \pm u_{max}\big)$$
+```math
+I[k] = \mathrm{clamp}\big(I[k-1] + K_i\,e[k],\ \pm u_{max}\big)
+```
+```math
+u[k] = \mathrm{clamp}\big(K_p\,e[k] + I[k] + K_d\,(e[k]-e[k-1]),\ \pm u_{max}\big)
+```
 
 Two implementation details worth stating plainly, because they change what the
 gains mean:
@@ -224,7 +256,7 @@ little phase lead.
 For an X configuration, each rotor contributes to all three torques. With
 throttle $T$ and controller outputs $u_r, u_p, u_y$:
 
-$$
+```math
 \begin{bmatrix} M_{FR} \\ M_{RR} \\ M_{RL} \\ M_{FL} \end{bmatrix}
 =
 T +
@@ -235,7 +267,7 @@ T +
 -1 & -1 & +1
 \end{bmatrix}
 \begin{bmatrix} u_p \\ u_r \\ u_y \end{bmatrix}
-$$
+```
 
 The yaw column is the pattern that makes a quadcopter work: diagonal pairs
 spin the same way, so differential thrust between the two pairs produces a net
@@ -249,13 +281,17 @@ protects.
 **Battery compensation.** As the pack sags, a given pulse width produces less
 thrust. The mixer adds an open-loop correction:
 
-$$M_i \mathrel{+}= (12.40 - V_{batt})\,k_{comp}$$
+```math
+M_i \mathrel{+}= (12.40 - V_{batt})\,k_{comp}
+```
 
 with $k_{comp} = 40$ µs per volt, applied only while $6 < V_{batt} < 12.40$ V
 so a disconnected sensor cannot command full throttle. Battery voltage itself
 is filtered:
 
-$$V[k] = 0.92\,V[k-1] + \frac{\text{ADC}}{1410.1}$$
+```math
+V[k] = 0.92\,V[k-1] + \frac{\text{ADC}}{1410.1}
+```
 
 ## 5. Altitude hold
 
@@ -263,10 +299,16 @@ The MS5611 returns raw pressure $D_1$ and temperature $D_2$, which the
 datasheet's second-order compensation converts to pressure using the six
 factory calibration coefficients $C_1 \ldots C_6$:
 
-$$dT = D_2 - C_5 \cdot 2^{8}$$
-$$\text{OFF} = C_2 \cdot 2^{16} + \frac{C_4 \, dT}{2^{7}}, \qquad
-\text{SENS} = C_1 \cdot 2^{15} + \frac{C_3 \, dT}{2^{8}}$$
-$$P = \frac{\dfrac{D_1 \cdot \text{SENS}}{2^{21}} - \text{OFF}}{2^{15}}$$
+```math
+dT = D_2 - C_5 \cdot 2^{8}
+```
+```math
+\text{OFF} = C_2 \cdot 2^{16} + \frac{C_4 \, dT}{2^{7}}, \qquad
+\text{SENS} = C_1 \cdot 2^{15} + \frac{C_3 \, dT}{2^{8}}
+```
+```math
+P = \frac{\dfrac{D_1 \cdot \text{SENS}}{2^{21}} - \text{OFF}}{2^{15}}
+```
 
 Conversion takes ~9 ms, longer than one control loop, so the driver is a small
 state machine spread over several iterations: request, wait, read, compute.
@@ -285,8 +327,10 @@ where the derivative is a moving sum of recent error changes rather than a
 single difference, which is what makes it usable given 5 Hz GPS into a 250 Hz
 loop:
 
-$$u_{north} = K_p\,e_{lat} + K_d \sum \Delta e_{lat}, \qquad
-u_{east} = K_p\,e_{lon} + K_d \sum \Delta e_{lon}$$
+```math
+u_{north} = K_p\,e_{lat} + K_d \sum \Delta e_{lat}, \qquad
+u_{east} = K_p\,e_{lon} + K_d \sum \Delta e_{lon}
+```
 
 with $K_p = 2.7$, $K_d = 6.5$. Between GPS fixes the position estimate is
 linearly interpolated forward so the controller sees a smooth signal instead
@@ -295,8 +339,12 @@ of a 5 Hz staircase.
 The correction is computed in the **north-east frame** and must be rotated
 into the **body frame** before it can be added to the stick commands:
 
-$$u_{roll} = u_{east}\cos\psi + u_{north}\cos(\psi - 90^\circ)$$
-$$u_{pitch} = u_{north}\cos\psi + u_{east}\cos(\psi + 90^\circ)$$
+```math
+u_{roll} = u_{east}\cos\psi + u_{north}\cos(\psi - 90^\circ)
+```
+```math
+u_{pitch} = u_{north}\cos\psi + u_{east}\cos(\psi + 90^\circ)
+```
 
 This is a rotation by heading $\psi$, written with cosines of shifted angles
 rather than a sine so both terms share one trigonometric form. Output is
@@ -309,8 +357,12 @@ at arming, so "forward" means the same direction regardless of which way the
 airframe points. The commands are rotated by the deviation
 $\Delta\psi = \psi - \psi_{lock}$:
 
-$$u_{roll} = 1500 + (u_1 - 1500)\cos\Delta\psi + (u_2 - 1500)\cos(\Delta\psi - 90^\circ)$$
-$$u_{pitch} = 1500 + (u_2 - 1500)\cos\Delta\psi + (u_1 - 1500)\cos(\Delta\psi + 90^\circ)$$
+```math
+u_{roll} = 1500 + (u_1 - 1500)\cos\Delta\psi + (u_2 - 1500)\cos(\Delta\psi - 90^\circ)
+```
+```math
+u_{pitch} = 1500 + (u_2 - 1500)\cos\Delta\psi + (u_1 - 1500)\cos(\Delta\psi + 90^\circ)
+```
 
 ## 8. Why the loop period is load-bearing
 
