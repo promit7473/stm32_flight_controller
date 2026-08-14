@@ -430,38 +430,5 @@ to disarm.
 
 ## Credits
 
-The original YMFC-32 flight controller, the hardware design, and the video
-series that explains the control theory behind it are the work of
-**Joop Brokking** ([brokking.net](http://www.brokking.net)). His YMFC series
-is one of the clearest treatments of practical multirotor control available
-anywhere, and this project would not exist without it.
-
-This repository is my build of that design: my airframe, my tuning, my flights,
-and a refactor of the firmware for readability, with the mathematics written
-out in full and the loop-timing constraints documented.
-
----
-
-## How this refactor was verified
-
-The firmware flies a real aircraft, so "it looks right" is not a standard. Each
-change was checked mechanically:
-
-- **A compiler was in the loop.** `arduino-cli` with the libmaple core builds
-  all three sketches. It caught a real collision immediately: `config.h`
-  defined `DEG_TO_RAD` and `RAD_TO_DEG`, which `Arduino.h` already provides as
-  macros.
-- **Renaming was proved complete.** A single-pass script that refuses to run
-  if a new name already exists, if any old name survives, or if any occurrence
-  count changes. 84 identifiers, 703 occurrences. Flash came out
-  byte-identical to the baseline, so code generation did not change.
-- **The shared PID was proved equivalent.** The original three blocks and the
-  new shared function were reimplemented in float32 and driven with 100 000
-  random stick, gyro and level-adjust samples per axis: 300 000 steps, zero
-  differences, integrators bit-identical.
-- **The loop split was proved free.** Flash and RAM are byte-identical before
-  and after, because the compiler inlines the static phase functions.
-
-What that does *not* cover: no hardware-in-the-loop test was run. Sensor
-drivers, timer configuration and the arming state machine are exercised only
-by the compiler. **Fly it with the propellers off first.**
+Based on the YMFC-32 flight controller by Joop Brokking. This repository is my
+build of it: my airframe, my wiring, my tuning, my flights, refactored firmware.
