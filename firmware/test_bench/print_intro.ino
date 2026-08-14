@@ -21,7 +21,7 @@ void print_intro(void) {
   Serial.println(F("4 = Check motor 4 (front left, clockwise direction)"));
   Serial.println(F("5 = Check all motors"));
   Serial.println(F("==================================================="));
-  Serial.println(F("For support and questions: www.brokking.net"));
+  Serial.println(F("Setup and calibration steps are in the project README."));
   Serial.println(F(""));
   if (!disable_throttle) {                                      //If the throttle is not disabled.
     Serial.println(F("==================================================="));

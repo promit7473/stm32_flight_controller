@@ -33,7 +33,7 @@ void timer_setup(void) {
       Serial.println(channel_3);
       Serial.println(F(""));
       Serial.println(F("Is the receiver connected and the transmitter on?"));
-      Serial.println(F("For more support and questions: www.brokking.net"));
+      Serial.println(F("See the project README for the bring-up procedure."));
       Serial.println(F(""));
       Serial.print(F("Waiting for another 5 seconds."));
     }
