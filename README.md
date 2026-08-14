@@ -12,11 +12,29 @@ this document can state exactly what the aircraft computes on each of its
 250 loops per second.
 
 <p align="center">
-  <img src="media/project_img1.jpeg" alt="Assembled quadcopter" width="420">
-  <img src="media/project_img4.jpeg" alt="Flight controller wiring" width="420">
+  <img src="media/test_flight.gif" alt="Quadcopter test flight, take-off" width="250">
 </p>
 
-Flight footage: [`media/test_fly[short_video].mp4`](media/test_fly%5Bshort_video%5D.mp4)
+<p align="center">
+  <em>Take-off under its own control. Full 18 s clip:
+  <a href="media/test_flight_540p.mp4">540p</a> ·
+  <a href="media/test_fly%5Bshort_video%5D.mp4">original 1080p</a></em>
+</p>
+
+<p align="center">
+  <img src="media/project_img2.jpeg" alt="Flight controller board on the airframe" width="440">
+</p>
+
+<p align="center">
+  <img src="media/project_img1.jpeg" alt="Hand-soldered avionics, powered up" width="200">
+  <img src="media/project_img3.jpeg" alt="Bench setup with transmitter" width="268">
+  <img src="media/project_img4.jpeg" alt="Pre-flight in the field" width="200">
+</p>
+
+<p align="center">
+  <em>Hand-soldered on perfboard: STM32 board, MPU-6050, MS5611, HMC5883L,
+  GPS and the 433 MHz telemetry radio, wired to four ESCs.</em>
+</p>
 
 ---
 
@@ -349,7 +367,7 @@ firmware/
   test_bench/           sensor and receiver bring-up, run this first
   telemetry_receiver/   ground-station side of the 433 MHz link
 docs/                   wiring diagram
-media/                  build photos and flight footage
+media/                  build photos, flight GIF and footage
 ```
 
 ## Wiring
