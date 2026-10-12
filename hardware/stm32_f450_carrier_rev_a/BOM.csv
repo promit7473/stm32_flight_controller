@@ -1,0 +1,16 @@
+Reference,Quantity,Description,Value / footprint
+J1 J2,2,Blue Pill female socket,1x20 2.54 mm
+J3-J11,9,External module/servo headers,2.54 mm through-hole
+U2,1,MPU-6050 GY-521 module socket,1x8 2.54 mm
+U3,1,HMC5883L GY-271 module socket,1x5 2.54 mm
+U4,1,MS5611 GY-63 module socket,1x6 2.54 mm
+F1,1,Resettable fuse,500 mA 1206
+D3,1,Schottky reverse-polarity diode,SS14 SMA
+R1 R2,2,LED current resistor,330 ohm
+R3,1,Battery divider upper resistor,10 kohm 1%
+R4,1,Battery divider lower resistor,1 kohm 1%
+C1 C3,2,Decoupling/filter capacitor,100 nF
+C2,1,Input bulk capacitor,10 uF
+D1,1,Green status LED,0603
+D2,1,Red status LED,0603
+H1-H4,4,Mounting hole,M3 with vibration grommet/standoff

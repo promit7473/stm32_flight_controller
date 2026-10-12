@@ -43,15 +43,53 @@ state it reached after those iterations, not a first attempt.
 
 ## Hardware
 
+### Module-carrier PCB — Rev A prototype
+
+The new carrier is a **90 × 70 mm, two-layer PCB** for the Blue Pill and
+plug-in IMU, compass and barometer modules, with connectors for GPS, telemetry,
+a PPM-sum receiver and four ESCs. It is intended for an F450-style build;
+the 80 × 60 mm mounting pattern requires a verified adapter or standoffs,
+not an assumed direct fit to the frame.
+
+<p align="center">
+  <img src="hardware/stm32_f450_carrier_rev_a/board-top.png" alt="Straight-on top view of the Rev A module-carrier PCB" width="800">
+</p>
+
+<p align="center">
+  <img src="hardware/stm32_f450_carrier_rev_a/assembled-preview.png" alt="Level shallow-angle view of the populated Rev A module carrier" width="800">
+</p>
+
+These are **CAD previews, not photographs of built hardware**. The Blue Pill
+uses a detailed community model; the three sensor modules are illustrative
+approximations. The historical flight photos above show the earlier perfboard
+controller, not validation of this new PCB.
+
+- [KiCad project, PCB and assembly notes](hardware/stm32_f450_carrier_rev_a/README.md)
+- [Gerbers and drill files](hardware/stm32_f450_carrier_rev_a/fabrication/)
+  · [downloadable fabrication ZIP](hardware/stm32_f450_carrier_rev_a/stm32_f450_carrier_rev_a_gerbers.zip)
+- [BOM](hardware/stm32_f450_carrier_rev_a/BOM.csv)
+  · [connector pin map](hardware/stm32_f450_carrier_rev_a/pinmap.csv)
+- [Mechanical assumptions and fit checks](hardware/stm32_f450_carrier_rev_a/MECHANICAL_BASELINE.md)
+  · [3D model attribution and optional download](hardware/stm32_f450_carrier_rev_a/MODEL_SOURCES.md)
+
+The current [KiCad DRC report](hardware/stm32_f450_carrier_rev_a/drc.rpt)
+has **0 violations and 0 unconnected pads**. This checks layout rules, not
+electrical correctness or flight readiness. Before ordering: confirm actual
+module pinouts, frame fit and power paths; complete a native schematic and
+electrical review; then perform current-limited bench tests without propellers.
+Complete sourced sensor CAD models are still outstanding.
+
+### Devices and firmware interfaces
+
 | Part | Device | Interface |
 | --- | --- | --- |
 | MCU | STM32F103C8T6, 72 MHz Cortex-M3, 20 KB RAM, no FPU | — |
-| IMU | MPU-6050, gyro ±500 °/s and accelerometer ±8 g | I²C1 @ 400 kHz |
-| Magnetometer | HMC5883L | I²C1 @ 400 kHz |
-| Barometer | MS5611, 24-bit pressure and temperature | I²C1 @ 400 kHz |
+| IMU | MPU-6050, gyro ±500 °/s and accelerometer ±8 g | I²C2 @ 400 kHz |
+| Magnetometer | HMC5883L | I²C2 @ 400 kHz |
+| Barometer | MS5611, 24-bit pressure and temperature | I²C2 @ 400 kHz |
 | GNSS | u-blox, UBX binary at 57 600 baud, 5 Hz | USART1 |
 | Telemetry | 433 MHz link to a ground receiver | bit-banged, 1 byte/loop |
-| Receiver | 6-channel PWM, captured by timer input capture | TIM2 |
+| Receiver | 6 channels decoded from one PPM/CPPM-sum signal | TIM2, PA0 |
 | Motors | 4 × ESC, 1000–2000 µs pulses at 250 Hz | TIM4 PWM |
 
 The absence of an FPU is the single most important fact about this target.
@@ -422,6 +460,8 @@ firmware/
   test_bench/           sensor and receiver bring-up, run this first
   telemetry_receiver/   ground-station side of the 433 MHz link
 docs/                   schematic, and the script that generates it
+hardware/
+  stm32_f450_carrier_rev_a/  KiCad PCB, previews, BOM, pin map and prototype fabrication files
 tools/                  media tooling
 media/                  build photos, flight GIF and footage
 ```

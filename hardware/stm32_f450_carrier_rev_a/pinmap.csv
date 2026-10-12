@@ -1,0 +1,39 @@
+Connector,Pin,Signal,STM32 pin,Notes
+J3 RC,1,PPM,PA0,PPM sum input
+J3 RC,2,+5V,,Receiver supply
+J3 RC,3,GND,,Ground
+J4 Battery,1,VBAT,,3S battery positive through 10k divider
+J4 Battery,2,GND,,Battery negative
+J5 Telemetry,1,TLM_TX,PB0,Bit-banged telemetry output
+J5 Telemetry,2,+5V,,Radio supply
+J5 Telemetry,3,GND,,Ground
+J6 ESC1,1,ESC1,PB6,Front right CCW / TIM4 CH1
+J6 ESC1,2,+5V,,Only connected ESC BEC input
+J6 ESC1,3,GND,,Ground
+J7 ESC2,1,ESC2,PB7,Rear right CW / TIM4 CH2
+J7 ESC2,2,NC,,BEC intentionally isolated
+J7 ESC2,3,GND,,Ground
+J8 ESC3,1,ESC3,PB8,Rear left CCW / TIM4 CH3
+J8 ESC3,2,NC,,BEC intentionally isolated
+J8 ESC3,3,GND,,Ground
+J9 ESC4,1,ESC4,PB9,Front left CW / TIM4 CH4
+J9 ESC4,2,NC,,BEC intentionally isolated
+J9 ESC4,3,GND,,Ground
+J10 GPS,1,GPS_RX,PA9,MCU TX to GPS RX
+J10 GPS,2,GPS_TX,PA10,GPS TX to MCU RX
+J10 GPS,3,+5V,,Module supply
+J10 GPS,4,GND,,Ground
+U2 MPU6050,1,+3V3,,Verify actual module pin order
+U2 MPU6050,2,GND,,
+U2 MPU6050,3,SCL,PB10,I2C2 clock
+U2 MPU6050,4,SDA,PB11,I2C2 data
+U3 HMC5883L,1,+3V3,,Verify actual module pin order
+U3 HMC5883L,2,GND,,
+U3 HMC5883L,3,SCL,PB10,I2C2 clock
+U3 HMC5883L,4,SDA,PB11,I2C2 data
+U4 MS5611,1,+3V3,,Verify actual module pin order
+U4 MS5611,2,GND,,
+U4 MS5611,3,SCL,PB10,I2C2 clock
+U4 MS5611,4,SDA,PB11,I2C2 data
+U4 MS5611,5,CSB=+3V3,,Select address 0x77
+U4 MS5611,6,PS=+3V3,,Select I2C
